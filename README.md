@@ -1,110 +1,166 @@
 // ==UserScript==
-// @name         StarBreak: Hide Distractions (new)
+// @name         StarBreak: Script Controls Menu
 // @namespace    https://gist.github.com/coolguy027/4751b097e1ef9ea178a583f235877c0e
 // @version      0.1
-// @description  Hides UI and text
-// @author       tobbez
+// @description  Adds a script controls menu to the game
+// @author       coolguy027
 // @match        http*://*.starbreak.com/*
 // @grant        GM_setValue
 // @grant        GM_getValue
-// @downloadURL  https://gist.github.com/coolguy027/4751b097e1ef9ea178a583f235877c0e/raw/starbreak-hide-distractions-new.user.js
-// @updateURL    https://gist.github.com/coolguy027/4751b097e1ef9ea178a583f235877c0e/raw/starbreak-hide-distractions-new.user.js
+// @grant        GM_registerMenuCommand
+// @downloadURL  https://gist.github.com/coolguy027/4751b097e1ef9ea178a583f235877c0e/raw/starbreak-script-controls-menu.user.js
+// @updateURL    https://gist.github.com/coolguy027/4751b097e1ef9ea178a583f235877c0e/raw/starbreak-script-controls-menu.user.js
 // ==/UserScript==
+/* jshint -W097 */
+'use strict';
 
-//to change keybinds, use the keybind menu script, or change them in storage
-
-if (typeof GM_getValue('hide') === 'undefined'){
-    GM_setValue('hide', '191');//default = /
+function check (name, dfltT) {
+    if (typeof GM_getValue(name + 'K') === 'undefined'){
+        GM_setValue(name + 'K', dfltT);
+    }
 }
-function onLoaded() {
-    var uiTextures = new Set();
-    var hidingEnabled = false;
-    var hpCache = new Map();
+check('menu', 'T');
+check('acc', 'L');
+check('hide', 'Slash');
+check('hil', 'K');
+check('zIn', 'Equal');
+check('zOut', 'Minus');
+//quick swap row 1 (enabled):
+check('q1', 'F');//slot 1
+check('q2', 'R');//slot 2
+check('q3', 'V');//slot 3
+//row 2 (disabled):
+//check('q4', 'Numpad4');//slot 4
+//check('q5', 'Numpad5');//slot 5
+//check('q6', 'Numpad6');//slot 6
+//row 3 (disabled):
+//check('q7', 'Numpad1');//slot 7
+//check('q8', 'Numpad2');//slot 8
+//check('q9', 'Numpad3');//slot 9
 
-    var el = document.createElement('div');
+function createElem(tag, parent) {
+    let e = document.createElement(tag);
+    e.className = 'mnu';
+    if (typeof parent !== 'undefined') {
+        parent.appendChild(e);
+    }
+    return e;
+}
+function openS () {
+    let container = createElem('div');
 
-    function toggleHiding () {
-        hidingEnabled = !hidingEnabled;
-        if (hidingEnabled) {
-            el.style.backgroundColor = '#fff';
-        } else {
-            el.style.backgroundColor = '#000';
+    function setKey (numtxt, keytxt) {
+        var kName = createElem('p', container);
+        kName.innerHTML = keytxt;
+        var key = createElem('a', kName);
+        key.setAttribute('style', 'text-decoration:none;');
+        key.setAttribute('href', '#');
+        key.innerHTML = '[' + GM_getValue(numtxt + 'K') + ']';
+        function clk(c) {
+            key.setAttribute('style', 'color:#66ffcc; text-decoration:none;');
+            key.className = '';
+            document.addEventListener("keydown", keyPrs);
+
+        }
+        function keyPrs(e) {
+            var cde = e.code.replace('Key', '').replace('Digit', '');
+            key.innerHTML = '[' + cde + ']';
+            key.className = 'mnu';
+            key.setAttribute('style', 'text-decoration:none;');
+            document.removeEventListener("keydown", keyPrs);
+            key.addEventListener('click', function (e) {
+                e.preventDefault();
+                clk();
+            });
+            sessionStorage.setItem(numtxt, e.keyCode);
+            GM_setValue(numtxt + 'K', cde);
+        }
+        key.addEventListener('click', function (e) {
+            e.preventDefault();
+            clk();
+        });
+
+    }
+    sessionStorage.setItem('menuSwitch', 'on');
+
+    var title = createElem('h3', container);
+    title.innerHTML = 'Script Controls';
+    setKey('menu', 'Script Controls Menu: ');
+    setKey('acc', 'Account Switcher: ');
+    setKey('hide', 'Hide Distractions: ');
+    setKey('hil', 'Player Highlights: ');
+
+    var zT = createElem('b', container);
+    zT.innerHTML = 'Zoom';
+    setKey('zIn', 'Zoom In: ');
+    setKey('zOut', 'Zoom Out: ');
+
+    var qsT = createElem('b', container);
+    qsT.innerHTML = 'Quick Swap<br style = \'line-height: 1.75\'>First Row';
+    //row 1 (enabled):
+    setKey('q1', 'Slot 1: ');
+    setKey('q2', 'Slot 2: ');
+    setKey('q3', 'Slot 3: ');
+    //row 2 (disabled):
+    //var qs2 = createElem('b', container);
+    //qs2.innerHTML = 'Second Row';
+    //setKey('q4', 'Slot 4: ');
+    //setKey('q5', 'Slot 5: ');
+    //setKey('q6', 'Slot 6: ');
+    //row 3 (disabled)
+    //var qs3 = createElem('b', container);
+    //qs3.innerHTML = 'Third Row';
+    //setKey('q7', 'Slot 7: ');
+    //setKey('q8', 'Slot 8: ');
+    //setKey('q9', 'Slot 9: ');
+
+    var closeLink = createElem('a', container);
+    closeLink.innerHTML = 'Close';
+    closeLink.setAttribute('href', '#');
+    closeLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.body.removeChild(container);
+        sessionStorage.removeItem('menuSwitch');
+    });
+    document.body.appendChild(container);
+}
+let styles = createElem('style', document.body);
+styles.textContent = `
+div.mnu {
+position: fixed;
+background-color: rgba(16, 16, 16, 0.9);
+top: 2%;
+left: 38%;
+right: 38%;
+color: #f0f0f0;
+font-size: 12pt;
+font-family: Consolas,monospace;
+padding: 10px;
+text-align: center;
+border-radius: 5px;
+}
+a.mnu:link {
+color: #e0e0e0;
+}
+a.mnu:hover {
+color: #f2f2f2;
+}
+`;
+function checkOpen() {
+    if (sessionStorage.getItem('menuSwitch') === null) {
+        openS();
+    }
+}
+GM_registerMenuCommand('Open Keybind Menu', checkOpen);
+if (typeof GM_getValue('menu') === 'undefined'){
+    GM_setValue('menu', '84');//default = T
+}
+document.addEventListener('keydown', function (e){
+    if ((e.keyCode == GM_getValue('menu') || e.keyCode == sessionStorage.getItem('menu')) && sessionStorage.getItem('menuSwitch') === null && !XDL.textInputActive) {
+        openS();
+        if (sessionStorage.getItem('menu') !== null){
+            GM_setValue('menu', sessionStorage.getItem('menu'));
+            sessionStorage.removeItem('menu');
         }
     }
-
-    el.setAttribute('style', 'font-size: 9pt; font-family: Consolas, monospace; position: absolute; left: 0; top: 0; border-bottom-right-radius: 5px; color: #fff; padding: 7px; margin: 0; background-color: #000; width: 20px; height: 20px; opacity: 0;');
-    document.addEventListener('keydown', function (e) {
-        if ((e.keyCode == GM_getValue('hide') || e.keyCode == sessionStorage.getItem('hide')) && sessionStorage.getItem('menuSwitch') === null && !XDL.textInputActive) {
-            toggleHiding();
-            if (sessionStorage.getItem('hide') !== null){
-                GM_setValue('hide', sessionStorage.getItem('hide'));
-                sessionStorage.removeItem('hide');
-            }
-        }
-    });
-    el.addEventListener('mouseover', function () {
-        el.style.opacity = '0.9';
-    });
-    el.addEventListener('mouseout', function () {
-        el.style.opacity = '0';
-    });
-    document.querySelector('.emscripten_border').setAttribute('style', 'position: absolute; top: 0; left: 0;');
-    document.querySelector('.emscripten_border').appendChild(el);
-
-    (function (orig) {
-        RenderEngineWebGL._Z21XDL_CreateTextTextureiPKcijS0_ij = function (textureId, fontName, size, color, text, outlineSize, outlineColor) {
-            var textStr = Pointer_stringify(text);
-            var font = size + 'px ' + Pointer_stringify(fontName);
-            var csscolor = TextUtils.loadColorToCSSRGBA(color);
-
-            if (textStr.match(/^\d+\/\d+$/) && textStr.split('/')[1] > 40) {
-                var key = [textureId, fontName, size, color, text, outlineSize, outlineColor].join('###');
-                if (textureId != 0) {
-                    if (hpCache.has(key)) {
-                        return hpCache.get(key);
-                    }
-                }
-                var hptid = orig.apply(null, [0, fontName, 24, color, text, outlineSize, outlineColor]);
-                hpCache.set(key, hptid);
-                return hptid;
-            }
-            var tid = orig.apply(null, arguments);
-
-
-            if (!textStr.match(/^\d+\/\d+$/) && !(textStr.match(/^\d+$/) && font == '18px HemiHeadBold' && csscolor == 'rgba(255,0,0,1)') && // Excempt ammo, health and damage taken
-                !(textStr.match(/^\d+$/) && ((font == '18px HemiHeadBold' && (csscolor == 'rgba(255,255,255,1)' || csscolor == 'rgba(152,168,152,1)')) || (font == '24px HemiHeadBold' && csscolor == 'rgba(255,0,128,1)') || (font == '26px HemiHeadBold' && csscolor == 'rgba(255,0,128,1)')))) { // And damage done
-                uiTextures.add(tid);
-            }
-            return tid;
-        };
-    })(RenderEngineWebGL._Z21XDL_CreateTextTextureiPKcijS0_ij);
-
-    (function (orig) {
-        RenderEngineWebGL.addTexture = function (drawable) {
-            var tid = orig.apply(null, arguments);
-            if (drawable.src && drawable.src.match(/\/ui\.0\./)) {
-                uiTextures.add(tid);
-            }
-            return tid;
-        };
-    })(RenderEngineWebGL.addTexture);
-
-    (function (orig) {
-        RenderEngineWebGL._Z15XDL_DrawTextureiiiiiiiiiiiiij9BlendMode = function(texture, sx, sy, sw, sh, dx, dy, dw, dh, rot, rpx, rpy, flip, cm, blendMode) {
-            if (hidingEnabled && uiTextures.has(texture)) {
-                return;
-            }
-            return orig.apply(null, arguments);
-        };
-    })(RenderEngineWebGL._Z15XDL_DrawTextureiiiiiiiiiiiiij9BlendMode);
-}
-
-function waitUntilLoaded () {
-    if (typeof RenderEngineWebGL == 'undefined') {
-        setTimeout(waitUntilLoaded, 100);
-        return;
-    }
-    onLoaded();
-}
-waitUntilLoaded();
-GM_setValue('1', 'adjust the number(s), don\'t remove any quotes, visit \'https://keycode.info\' to find a number');
+});
